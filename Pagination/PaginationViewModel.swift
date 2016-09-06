@@ -3,11 +3,14 @@ import RxSwift
 import RxCocoa
 import APIKit
 
+enum PaginationLoadType {
+    case Refresh, NextPage
+}
+
 class PaginationViewModel<Request: PaginationRequestType> {
     let session: Session
 
-    let refreshTrigger = PublishSubject<Void>()
-    let loadNextPageTrigger = PublishSubject<Void>()
+    let loadTrigger = PublishSubject<PaginationLoadType>()
 
     let hasNextPage = Variable<Bool>(false)
     let loading = Variable<Bool>(false)
@@ -22,7 +25,7 @@ class PaginationViewModel<Request: PaginationRequestType> {
         self.session = session
 
         let refreshRequest = loading.asObservable()
-            .sample(refreshTrigger)
+            .sample(loadTrigger.filter { $0 == .Refresh })
             .flatMap { loading -> Observable<Request> in
                 if loading {
                     return Observable.empty()
@@ -33,7 +36,7 @@ class PaginationViewModel<Request: PaginationRequestType> {
 
         let nextPageRequest = Observable
             .combineLatest(loading.asObservable(), hasNextPage.asObservable(), lastLoadedPage.asObservable()) { $0 }
-            .sample(loadNextPageTrigger)
+            .sample(loadTrigger.filter { $0 == .NextPage })
             .flatMap { loading, hasNextPage, lastLoadedPage -> Observable<Request> in
                 if let page = lastLoadedPage where !loading && hasNextPage {
                     return Observable.of(baseRequest.requestWithPage(page + 1))

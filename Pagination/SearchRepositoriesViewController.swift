@@ -14,12 +14,13 @@ class SearchRepositoriesViewController: UITableViewController {
         tableView.dataSource = nil
 
         rx_sentMessage(#selector(UIViewController.viewWillAppear(_:)))
-            .map { _ in () }
-            .bindTo(viewModel.refreshTrigger)
+            .map { _ in .Refresh }
+            .bindTo(viewModel.loadTrigger)
             .addDisposableTo(disposeBag)
 
         tableView.rx_reachedBottom
-            .bindTo(viewModel.loadNextPageTrigger)
+            .map { _ in .NextPage }
+            .bindTo(viewModel.loadTrigger)
             .addDisposableTo(disposeBag)
 
         viewModel.loading.asDriver()
